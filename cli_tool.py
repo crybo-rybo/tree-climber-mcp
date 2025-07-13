@@ -12,27 +12,36 @@ from mcp.types import Tool, TextContent
 class CommandLineInterfaceTool(ToolBase):
 
   def __init__(self):
-    super().__init__("cli_tool", [
-      Tool(
-        name="cli_tool",
-        description="Runs the provided bash style command and returns the command output.",
-        inputSchema={
-          "type": "object",
-          "properties": {
-            "cmdString": {
-              "type": "string",
-              "description": "The raw text input including the bash command to run along with any other command arguments."
-            }
+    super().__init__("cli_tool", Tool(
+      name="cli_tool",
+      description="Runs a provided bash command in an xonsh shell instance.",
+      inputSchema={
+        "type": "object",
+        "properties": {
+          "bash_command": {
+            "type": "string",
+            "description": "The complete bash command to run in the xonsh shell."
           },
-          "required": ["url"]
-        }
-      )
-    ])
+          "timeout": {
+            "type": "number",
+            "description": "Optional timeout in seconds (default: 10)",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 60
+          }
+        },
+        "required": ["bash_command"]
+      }
+    )
+    )
 
-  def _call_tool(self, args: dict) -> list[TextContent]:
+  def call_tool(self, args: dict) -> list[TextContent]:
     print(f"Tool Call Detected in {self._name}")
     return [TextContent(
       type="text",
       text="This is a stubbed MCP call - to use, finish implementation."
     )]
   
+  def cleanup(self):
+    self._name = ""
+    self._tool_obj = 0

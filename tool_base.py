@@ -4,7 +4,7 @@
 - MCP Tool base class that defines generic fields for tool definition / registration
 
 """
-from tool_manager import ToolManager
+
 from abc import ABC, abstractmethod
 from mcp.types import Tool, TextContent
 
@@ -14,9 +14,24 @@ class ToolBase(ABC):
   def __init__(self, name: str, tool_def: Tool):
     self._name = name
     self._tool_obj = tool_def
-    ToolManager()._register_tool(self)
 
+  def get_tool(self) -> Tool:
+    return self._tool_obj
+  
+  def get_tool_name(self) -> str:
+    return self._name
+
+  """
+  Pure virtual(?) method for calling an child tool objects
+  """
   @abstractmethod
-  def _call_tool(self, args: dict) -> list[TextContent]:
-    pass # essentially = 0 in C++ ??
+  def call_tool(self, args: dict) -> list[TextContent]:
+    pass
+
+  """
+  Pure virtual(?) method for cleaning up any child tool objects
+  """
+  @abstractmethod
+  def cleanup(self):
+    pass
 
