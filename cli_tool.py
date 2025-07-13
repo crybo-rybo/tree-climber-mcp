@@ -7,6 +7,7 @@
 """
 
 from tool_base import ToolBase
+from shell_manager import ShellManager
 from mcp.types import Tool, TextContent
 
 class CommandLineInterfaceTool(ToolBase):
@@ -35,6 +36,9 @@ class CommandLineInterfaceTool(ToolBase):
     )
     )
 
+    # ShellManager class manages initializing Xonsh sub-process as well as IO to that process
+    self._shell_manager = ShellManager()
+
   def call_tool(self, args: dict) -> list[TextContent]:
     print(f"Tool Call Detected in {self._name}")
     return [TextContent(
@@ -45,3 +49,4 @@ class CommandLineInterfaceTool(ToolBase):
   def cleanup(self):
     self._name = ""
     self._tool_obj = 0
+    self._shell_manager.cleanup()
