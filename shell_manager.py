@@ -3,6 +3,7 @@ Manages instances of the bash shells, as well as executing user commands
 '''
 
 import pexpect
+import asyncio
 import re
 
 # Define common xonsh prompts. Xonsh's default prompt is quite distinctive.
@@ -21,11 +22,20 @@ xonshPromptPatterns = [
 class ShellManager:
    
   def __init__(self):
-    self._xonsh_proc = pexpect.spawn('xonsh --no-rc', encoding='utf-8')
-    # Flush the initial xonsh welcome message from child process
-    self._xonsh_proc.expect(r'@\s', timeout=15)
+    self._xonsh_proc = None
 
-  def run_command(self, command: str, cmd_timeout: float = 10) -> str:
+  async def initialize_shell(self):
+    self._xonsh_proc = pexpect.spawn('xonsh --no-rc', encoding='utf-8')
+
+    # Flush the initial xonsh welcome message from child process
+    try:
+      self._xonsh_proc.expect(r'.*@', timeout=25)
+    except pexpect.exceptions.TIMEOUT:
+      print(f"Timeout waiting for welcome message: {self._xonsh_proc.before}")
+    except pexpect.exceptions.EOF:
+      print("EOF File Error when initializing...")
+
+  async def run_command(self, command: str, cmd_timeout: float = 10) -> str:
     # TODO - add some sanity checking for "blacklisted" commands
 
     # Send the command to the xonsh process
@@ -51,7 +61,18 @@ class ShellManager:
     
     # Get the text "after" any of the matched patterns...
     print(f"Xonsh Process Command Output: {self._xonsh_proc.after}")
-    return self._xonsh_proc.after
+    retVal = self._xonsh_proc.after
+
+    # Seek to the end of post-command output
+    try:
+      self._xonsh_proc.expect(r'.*@', timeout=25)
+    except pexpect.exceptions.TIMEOUT:
+      return retVal
+    except pexpect.exceptions.EOF:
+      return retVal
+    
+    return retVal
+
   
-  def cleanup(self):
+  async def cleanup(self):
     self._xonsh_proc.close()
