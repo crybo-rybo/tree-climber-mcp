@@ -31,7 +31,7 @@ class CommandLineServer:
 
   async def _cleanup(self):
     self._logger.info("Cleaning up cli-server resources...")
-    # TODO - stuff here if necessary...? Probably something that closes the xonsh session for the CLI tool?
+    self._tool_manager.cleanup()
 
   # Registers the handlers required for MCP server functionality
   def _register_handlers(self):

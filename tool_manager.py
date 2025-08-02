@@ -6,6 +6,7 @@
 
 """
 
+import asyncio
 from mcp.types import Tool, TextContent
 from cli_tool import CommandLineInterfaceTool
 
@@ -19,14 +20,14 @@ class ToolManager:
       CommandLineInterfaceTool()
     ]
 
-  def export_tools(self) -> list[Tool]:
+  async def export_tools(self) -> list[Tool]:
     expList = []
     for tool in self._tool_list:
       expList.append(tool.get_tool())
 
     return expList
   
-  def call_tool(self, name: str, args: dict) -> list[TextContent]:
+  async def call_tool(self, name: str, args: dict) -> list[TextContent]:
     gCall = False
     for tool in self._tool_list:
       if tool.get_tool_name() == name:
@@ -37,4 +38,6 @@ class ToolManager:
       text=f"Error: Unknown Tool Name - {name}"
     )
       
-
+  async def cleanup(self):
+    for atool in self._tool_list:
+      atool.cleanup()

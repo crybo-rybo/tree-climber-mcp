@@ -13,66 +13,62 @@ import re
 # pexpect often translates \n to \r\n, so we'll look for both.
 xonshPromptPatterns = [
     r'.*@\s',     # Matches typical xonsh prompt ending with '> '
-    r'.*[$#]\s',  # Fallback for more bash-like prompts if xonsh is configured differently
+    r'.*[$#>]\s',  # Fallback for more bash-like prompts if xonsh is configured differently
     r'.*\r?\n',   # Matches any line ending with \n or \r\n
     pexpect.EOF,
     pexpect.TIMEOUT
 ]
 
+xonshWelcomePatterns = [
+    r'.*@\s',
+    r'.*\r?\n',
+    pexpect.EOF,
+    pexpect.TIMEOUT
+]
+
+xonshPrompt = "##P##"
+
 class ShellManager:
    
   def __init__(self):
-    self._xonsh_proc = None
+    self._xonsh_proc = pexpect.spawn('xonsh', encoding='utf-8')
+    self._xonsh_proc.delaybeforesend = 2
+    # Set the xonsh prompt to something that we can easily delim
+    setPrompt = f'$PROMPT = "{xonshPrompt}"'
+    self._xonsh_proc.sendline(setPrompt)
+    self._xonsh_proc.expect_exact(setPrompt)
+    self._log_buffer()
+    self._xonsh_proc.expect_exact(setPrompt)
+    self._log_buffer()
+    self._xonsh_proc.expect_exact(xonshPrompt)
+    self._log_buffer()
 
-  async def initialize_shell(self):
-    self._xonsh_proc = pexpect.spawn('xonsh --no-rc', encoding='utf-8')
-
-    # Flush the initial xonsh welcome message from child process
-    try:
-      self._xonsh_proc.expect(r'.*@', timeout=25)
-    except pexpect.exceptions.TIMEOUT:
-      print(f"Timeout waiting for welcome message: {self._xonsh_proc.before}")
-    except pexpect.exceptions.EOF:
-      print("EOF File Error when initializing...")
-
-  async def run_command(self, command: str, cmd_timeout: float = 10) -> str:
-    # TODO - add some sanity checking for "blacklisted" commands
-
+  async def run_command(self, command: str, cmd_timeout: float = 2) -> str:
     # Send the command to the xonsh process
     self._xonsh_proc.sendline(command)
 
-    # xonsh will echo the command so just read output until AFTER the command
+    # xonsh will echo commands - read buffer until command is found
+    # anything after should be command output...?
     try:
       self._xonsh_proc.expect(re.escape(command) + r'\r?\n', timeout=cmd_timeout)
+      self._xonsh_proc.expect(re.escape(command) + r'\r?\n', timeout=cmd_timeout)
+      self._xonsh_proc.expect_exact(xonshPrompt, timeout=cmd_timeout)
     except pexpect.exceptions.TIMEOUT:
-      # do nothing
       pass
     except pexpect.exceptions.EOF:
-      # failed for some reason
       return "Unknown exception caused shell instance to close..."
     
-    # Next - get the output of the command
-    try:
-      self._xonsh_proc.expect(xonshPromptPatterns, timeout=cmd_timeout)
-    except pexpect.exceptions.TIMEOUT:
-      return "Timed out waiting for xonsh response to command..."
-    except pexpect.exceptions.EOF:
-      return "Unknown exception caused shell instance to close..."
-    
-    # Get the text "after" any of the matched patterns...
-    print(f"Xonsh Process Command Output: {self._xonsh_proc.after}")
-    retVal = self._xonsh_proc.after
-
-    # Seek to the end of post-command output
-    try:
-      self._xonsh_proc.expect(r'.*@', timeout=25)
-    except pexpect.exceptions.TIMEOUT:
-      return retVal
-    except pexpect.exceptions.EOF:
-      return retVal
-    
-    return retVal
+    outString = self._xonsh_proc.before
+    findStr = outString.find(xonshPrompt)
+    if findStr:
+      return outString.split(xonshPrompt)[0]
+    else:
+      return outString
 
   
   async def cleanup(self):
-    self._xonsh_proc.close()
+    self._xonsh_proc.close() 
+
+  async def _log_buffer(self):
+    print(f"Before - {self._xonsh_proc.before}")
+    print(f"After - {self._xonsh_proc.after}")
