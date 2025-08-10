@@ -9,7 +9,7 @@
 
 import asyncio
 from logging import Logger
-from cli_tool import CommandLineInterfaceTool
+from command_line_interface_tool import CommandLineInterfaceTool
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
