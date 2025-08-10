@@ -29,19 +29,21 @@ xonshWelcomePatterns = [
 xonshPrompt = "##P##"
 
 class ShellManager:
-   
+
   def __init__(self):
     self._xonsh_proc = pexpect.spawn('xonsh', encoding='utf-8')
     self._xonsh_proc.delaybeforesend = 2
+
+  async def flush_buffer(self):
     # Set the xonsh prompt to something that we can easily delim
     setPrompt = f'$PROMPT = "{xonshPrompt}"'
     self._xonsh_proc.sendline(setPrompt)
     self._xonsh_proc.expect_exact(setPrompt)
-    self._log_buffer()
+    #self._log_buffer()
     self._xonsh_proc.expect_exact(setPrompt)
-    self._log_buffer()
+    #self._log_buffer()
     self._xonsh_proc.expect_exact(xonshPrompt)
-    self._log_buffer()
+    #self._log_buffer()
 
   async def run_command(self, command: str, cmd_timeout: float = 2) -> str:
     # Send the command to the xonsh process
@@ -69,6 +71,6 @@ class ShellManager:
   async def cleanup(self):
     self._xonsh_proc.close() 
 
-  async def _log_buffer(self):
+  def _log_buffer(self):
     print(f"Before - {self._xonsh_proc.before}")
     print(f"After - {self._xonsh_proc.after}")

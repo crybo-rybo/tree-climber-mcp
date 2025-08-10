@@ -10,6 +10,7 @@
 import asyncio
 from logging import Logger
 from tool_manager import ToolManager
+from cli_tool import CommandLineInterfaceTool
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
@@ -23,7 +24,8 @@ class CommandLineServer:
   
   def __init__(self, logger: Logger):
     self._server = Server("cli-server")
-    self._tool_manager = ToolManager()
+    #self._tool_manager = ToolManager()
+    self._cli_tool = CommandLineInterfaceTool()
     self._logger = logger
 
     # Register the MCP request handlers
@@ -31,18 +33,22 @@ class CommandLineServer:
 
   async def _cleanup(self):
     self._logger.info("Cleaning up cli-server resources...")
-    self._tool_manager.cleanup()
+    #self._tool_manager.cleanup()
 
   # Registers the handlers required for MCP server functionality
   def _register_handlers(self):
 
     @self._server.list_tools()
     async def handle_list_tools() -> list[Tool]:
-      return self._tool_manager.export_tools()
+      toolList = []
+      toolList.append(self._cli_tool.get_tool())
+      return toolList
     
     @self._server.call_tool()
     async def handle_call_tool(name: str, args: dict) -> list[TextContent]:
-      return self._tool_manager.call_tool(name, args)
+      if name != "cli_tool":
+        raise ValueError(f"Unknown tool: {name}")
+      return await self._cli_tool.call_tool(args)
     
   # Main routine to run the MCP server
   async def run(self):

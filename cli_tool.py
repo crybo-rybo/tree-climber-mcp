@@ -6,14 +6,13 @@
 
 """
 
-from tool_base import ToolBase
 from shell_manager import ShellManager
 from mcp.types import Tool, TextContent
 
-class CommandLineInterfaceTool(ToolBase):
+class CommandLineInterfaceTool():
 
   def __init__(self):
-    super().__init__("cli_tool", Tool(
+    self._tool_obj = Tool(
       name="cli_tool",
       description="Runs a provided bash command in an xonsh shell instance.",
       inputSchema={
@@ -34,10 +33,18 @@ class CommandLineInterfaceTool(ToolBase):
         "required": ["bash_command"]
       }
     )
-    )
+    self._shell_manager = None
 
-    # ShellManager class manages initializing Xonsh sub-process as well as IO to that process
-    self._shell_manager = ShellManager()
+  def get_tool(self) -> Tool:
+    return self._tool_obj
+  
+  async def _get_shell_manager(self) -> ShellManager:
+    """Get or create a ShellManager instance"""
+    if self._shell_manager is None:
+      self._shell_manager = ShellManager()
+      await self._shell_manager.flush_buffer()
+
+    return self._shell_manager
 
   def call_tool(self, args: dict) -> list[TextContent]:
     print(f"Tool Call Detected in {self._name}")

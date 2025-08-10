@@ -15,6 +15,7 @@ async def main1():
 
 async def main():
   testShell = ShellManager()
+  await testShell.flush_buffer()
   output = await testShell.run_command("ls")
   print(f"Ran 'ls' command:\n{output}")
   output = await testShell.run_command("pwd")
