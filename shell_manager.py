@@ -29,48 +29,61 @@ xonshWelcomePatterns = [
 xonshPrompt = "##P##"
 
 class ShellManager:
+  """
+  Class used to create and interface with a xonsh shell instance
+  """
 
   def __init__(self):
     self._xonsh_proc = pexpect.spawn('xonsh', encoding='utf-8')
     self._xonsh_proc.delaybeforesend = 2
 
   async def flush_buffer(self):
-    # Set the xonsh prompt to something that we can easily delim
+    """
+    Set the xonsh prompt to a predictible token and flush everything from tasks output buffer
+    """
     setPrompt = f'$PROMPT = "{xonshPrompt}"'
     self._xonsh_proc.sendline(setPrompt)
-    self._xonsh_proc.expect_exact(setPrompt)
-    #self._log_buffer()
-    self._xonsh_proc.expect_exact(setPrompt)
-    #self._log_buffer()
     self._xonsh_proc.expect_exact(xonshPrompt)
-    #self._log_buffer()
+    while self._xonsh_proc.buffer != "":
+      self._xonsh_proc.expect_exact(xonshPrompt)
 
-  async def run_command(self, command: str, cmd_timeout: float = 2) -> str:
-    # Send the command to the xonsh process
+  async def run_command(self, command: str, cmd_timeout: float = 10) -> str:
+    """
+    Method that sends a command to the xonsh shell instance and returns the output of the command
+
+    Args:
+      command (str)      : Bash command to run in the xonsh shell
+      cmd_timeout (float): Time - in seconds - before the xonsh call times out
+
+    Returns:
+      str: Output of running the provided command in the xonsh shell
+    """
     self._xonsh_proc.sendline(command)
 
-    # xonsh will echo commands - read buffer until command is found
-    # anything after should be command output...?
     try:
-      self._xonsh_proc.expect(re.escape(command) + r'\r?\n', timeout=cmd_timeout)
-      self._xonsh_proc.expect(re.escape(command) + r'\r?\n', timeout=cmd_timeout)
+      # read until the next prompt - which should be AFTER the command output
       self._xonsh_proc.expect_exact(xonshPrompt, timeout=cmd_timeout)
     except pexpect.exceptions.TIMEOUT:
-      pass
+      return "Timed out waiting for command to run..."
     except pexpect.exceptions.EOF:
       return "Unknown exception caused shell instance to close..."
     
-    outString = self._xonsh_proc.before
-    findStr = outString.find(xonshPrompt)
-    if findStr:
-      return outString.split(xonshPrompt)[0]
-    else:
-      return outString
+    output = self._xonsh_proc.before
+    match = re.search(command, output)
+    if match:
+      return output[match.end():]
+    return output
 
   
   async def cleanup(self):
+    """
+    Closes the xonsh shell
+    """
     self._xonsh_proc.close() 
 
   def _log_buffer(self):
+    """
+    Helper method that will log the xonsh buffer
+    """
     print(f"Before - {self._xonsh_proc.before}")
     print(f"After - {self._xonsh_proc.after}")

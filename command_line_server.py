@@ -1,8 +1,8 @@
 """
-- cli_agent_mcp.py
+- command_line_server.py
 
 1. Manages the main MCP server
-2. Registers the Tools
+2. Registers the tools
 3. Sets up MCP server handlers
 
 """
@@ -18,12 +18,13 @@ from mcp.types import (
   TextContent
 )
 
-# Class that handles the main MCP server management
 class CommandLineServer:
+  """
+  This class manages creating the MCP Server for the Command Line Interface tool.
+  """
   
   def __init__(self, logger: Logger):
     self._server = Server("cli-server")
-    #self._tool_manager = ToolManager()
     self._cli_tool = CommandLineInterfaceTool()
     self._logger = logger
 
@@ -31,26 +32,39 @@ class CommandLineServer:
     self._register_handlers()
 
   async def _cleanup(self):
+    """
+    Cleanup resources.
+    """
     self._logger.info("Cleaning up cli-server resources...")
-    #self._tool_manager.cleanup()
+    await self._cli_tool.cleanup()
 
-  # Registers the handlers required for MCP server functionality
   def _register_handlers(self):
+    """
+    Register the MCP server handlers.
+    """
 
     @self._server.list_tools()
     async def handle_list_tools() -> list[Tool]:
+      """
+      List available tools.
+      """
       toolList = []
       toolList.append(self._cli_tool.get_tool())
       return toolList
     
     @self._server.call_tool()
     async def handle_call_tool(name: str, args: dict) -> list[TextContent]:
-      if name != "cli_tool":
+      """
+      Handle tool call made by model.
+      """
+      if name != "command_line_interface_tool":
         raise ValueError(f"Unknown tool: {name}")
       return await self._cli_tool.call_tool(args)
     
-  # Main routine to run the MCP server
   async def run(self):
+    """
+    Starts the MCP Server.
+    """
     self._logger.info("Starting CLI MCP Server...")
     try:
       self._logger.info("Setting up stdio server...")
@@ -81,22 +95,3 @@ class CommandLineServer:
       self._logger.info("Cleaning up resources...")
       await self._cleanup()
       self._logger.info("Cleanup complete!")
-
-  # Asnyc context manager entry (TODO - get explaination on this API)
-  async def __aenter__(self):
-    return self
-  
-  async def __aexit__(self, exc_type, exc_val, exc_tb):
-    await self._cleanup()
-
-# Main entry point for the server
-async def main():
-  server = CommandLineServer()
-  try:
-    await server.run()
-  finally:
-    await server._cleanup()
-
-if __name__ == "__main__":
-  asyncio.run(main())
-

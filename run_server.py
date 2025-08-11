@@ -9,7 +9,7 @@
 import asyncio
 import sys
 import logging
-from cli_agent_mcp import CommandLineServer
+from command_line_server import CommandLineServer
 
 # Helper to configure the logging capability
 def setup_logging(level: str = "INFO"):
@@ -21,9 +21,12 @@ def setup_logging(level: str = "INFO"):
     logging.StreamHandler(sys.stderr)
   ]
 )
-  
-# Main asynchronous entry point for running the MCP server
+
 async def main():
+  """
+  Main entry point for running the Command Line Interface MCP Server
+  """
+  
   # TODO - eventually add some arg parsing for setting up logging level
   setup_logging("INFO")
   logger = logging.getLogger(__name__)

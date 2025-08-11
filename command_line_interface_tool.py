@@ -1,5 +1,5 @@
 """
-- cli_tool.py
+- command_line_interface_tool.py
 
 - This tool takes strings of texts and runs them in a xonsh terminal
   and returns the output
@@ -8,12 +8,13 @@
 
 from shell_manager import ShellManager
 from mcp.types import Tool, TextContent
+import cli_constants as Constants
 
 class CommandLineInterfaceTool():
 
   def __init__(self):
     self._tool_obj = Tool(
-      name="cli_tool",
+      name="command_line_interface_tool",
       description="Runs a provided bash command in an xonsh shell instance.",
       inputSchema={
         "type": "object",
@@ -36,24 +37,61 @@ class CommandLineInterfaceTool():
     self._shell_manager = None
 
   def get_tool(self) -> Tool:
+    """
+    Method that returns the CommandLineInterfaceTool object that is used
+    for MCP server initialization.
+
+    Returns:
+      mcp.types.Tool object defined with CommandLineInterfaceTool attributes
+    """
     return self._tool_obj
   
   async def _get_shell_manager(self) -> ShellManager:
-    """Get or create a ShellManager instance"""
+    """
+    Get or create a ShellManager instance
+    Return:
+      ShellManager object used to interface with the command line
+    """
     if self._shell_manager is None:
       self._shell_manager = ShellManager()
       await self._shell_manager.flush_buffer()
 
     return self._shell_manager
 
-  def call_tool(self, args: dict) -> list[TextContent]:
-    print(f"Tool Call Detected in {self._name}")
+  async def call_tool(self, args: dict) -> list[TextContent]:
+    """
+    Method that handles a call to the command_line_interface_tool
+
+    Returns:
+      List - should only be single entry - containing the output from the
+      ran bash command.
+    """
+
+    # Evaluate tool call arguements
+    cmd = args.get("bash_command")
+    timeout = args.get("timeout", Constants.COMMAND_TIMEOUT)
+    if not cmd:
+      return [TextContent(
+        type="text",
+        text="Error: base_command parameter is required"
+      )]
+
+    # Retrieve ShellManager instance
+    shell_interface = await self._get_shell_manager()
+
+    # Run the provided command - returned string is the output of the command
+    output = await shell_interface.run_command(cmd, timeout)
+
     return [TextContent(
       type="text",
-      text="This is a stubbed MCP call - to use, finish implementation."
+      text=output
     )]
   
-  def cleanup(self):
+  async def cleanup(self):
+    """
+    Method that cleans up all of the CommandLineInterfaceTool attributes
+    """
     self._name = ""
     self._tool_obj = 0
-    self._shell_manager.cleanup()
+    if not self._shell_manager is None:
+      await self._shell_manager.cleanup()
