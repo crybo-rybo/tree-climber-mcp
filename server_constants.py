@@ -5,6 +5,9 @@
 
 """
 
+# Xonsh prompt, used to override the default prompt
+SHELL_PROMPT = "##P##"
+
 # Timeout, in seconds, for sending command / receiving response
 COMMAND_TIMEOUT = 10
 
