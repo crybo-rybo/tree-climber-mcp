@@ -92,3 +92,30 @@ async def test_cleanup(shell_manager):
     manager, mock_proc = shell_manager
     await manager.cleanup()
     mock_proc.close.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_pwd(shell_manager):
+    manager, mock_proc = shell_manager
+    
+    # Mock output: command echo + newline + path + newline
+    # The parsing logic splits lines and ignores the command line.
+    mock_output = "print($PWD)\r\n/users/test/dir\r\n"
+    type(mock_proc).before = PropertyMock(return_value=mock_output)
+    
+    pwd = await manager.get_pwd()
+    
+    mock_proc.sendline.assert_called_with("print($PWD)")
+    mock_proc.expect_exact.assert_called_with(Constants.SHELL_PROMPT, timeout=Constants.COMMAND_TIMEOUT)
+    
+    assert pwd == "/users/test/dir"
+
+@pytest.mark.asyncio
+async def test_get_pwd_error(shell_manager):
+    manager, mock_proc = shell_manager
+    
+    # Simulate exception during expect
+    mock_proc.expect_exact.side_effect = Exception("Boom")
+    
+    pwd = await manager.get_pwd()
+    assert pwd == ""
+

@@ -6,13 +6,17 @@ from mcp.types import Tool, TextContent
 @pytest.fixture
 def mock_dependencies():
     with (patch("command_line_server.Server") as mock_server_cls, 
-          patch("command_line_server.CommandLineInterfaceTool") as mock_tool_cls, 
+          patch("command_line_server.CommandLineInterfaceTool") as mock_cli_tool_cls, 
+          patch("command_line_server.ReadFileTool") as mock_read_tool_cls,
+          patch("command_line_server.WriteFileTool") as mock_write_tool_cls,
+          patch("command_line_server.ListDirectoryTool") as mock_list_tool_cls,
+          patch("command_line_server.ShellManager") as mock_shell_cls,
           patch("command_line_server.stdio_server") as mock_stdio):
          
         mock_server_instance = MagicMock()
         mock_server_cls.return_value = mock_server_instance
         
-        # Mock decorators to return the function they decorate
+        # Mock decorators
         def fake_decorator():
             def wrapper(func):
                 return func
@@ -21,10 +25,29 @@ def mock_dependencies():
         mock_server_instance.list_tools.side_effect = fake_decorator
         mock_server_instance.call_tool.side_effect = fake_decorator
         
-        mock_tool_instance = AsyncMock()
-        mock_tool_cls.return_value = mock_tool_instance
-        
-        yield mock_server_instance, mock_tool_instance, mock_stdio
+        mock_shell_instance = AsyncMock()
+        mock_shell_cls.return_value = mock_shell_instance
+
+        # Setup mock tools
+        mocks = {
+            "cli": mock_cli_tool_cls,
+            "read": mock_read_tool_cls,
+            "write": mock_write_tool_cls,
+            "list": mock_list_tool_cls,
+            "server": mock_server_instance,
+            "shell": mock_shell_instance,
+            "stdio": mock_stdio
+        }
+
+        # Ensure tools return valid tool definitions
+        for key in ["cli", "read", "write", "list"]:
+             tool_instance = MagicMock()
+             tool_instance.get_tool.return_value = Tool(name=f"{key}_tool", description="desc", inputSchema={})
+             # Make call_tool async
+             tool_instance.call_tool = AsyncMock()
+             mocks[key].return_value = tool_instance
+
+        yield mocks
 
 @pytest.fixture
 def server(mock_dependencies):
@@ -32,40 +55,31 @@ def server(mock_dependencies):
     return CommandLineServer(logger)
 
 def test_init(server, mock_dependencies):
-    mock_server, mock_tool, _ = mock_dependencies
+    mocks = mock_dependencies
     
-    # Check server created with correct name
-    # We can't easily check args passed to Server constructor as it's mocked by class patch
-    # But we can check it was called.
-    pass 
-
-@pytest.mark.asyncio
-async def test_list_tools_handler(server, mock_dependencies):
-    mock_server, mock_tool, _ = mock_dependencies
+    # Check ShellManager created
+    assert server._shell_manager == mocks["shell"]
     
-    # We need to extract the registered handler.
-    # Since we mocked the decorator to just return the function, 
-    # and the handlers are defined inside _register_handlers called in __init__,
-    # we can't easily access the local functions 'handle_list_tools'.
-    
-    # However, since we are mocking the decorators, we can't easily verify WHICH function was registered 
-    # unless we capture it in the side_effect.
-    pass
-
-    # Alternative: The server class logic is mainly wiring. 
-    # If we assume 'mcp' library works, we just need to test 'run' and 'cleanup'.
+    # Check tools registered
+    assert len(server._tools) == 4
+    assert "cli_tool" in server._tools
+    assert "read_tool" in server._tools
+    assert "write_tool" in server._tools
+    assert "list_tool" in server._tools
 
 @pytest.mark.asyncio
 async def test_cleanup(server, mock_dependencies):
-    _, mock_tool, _ = mock_dependencies
+    mocks = mock_dependencies
     
     await server._cleanup()
     
-    mock_tool.cleanup.assert_called_once()
+    mocks["shell"].cleanup.assert_called_once()
     
 @pytest.mark.asyncio
 async def test_run_success(server, mock_dependencies):
-    mock_server, _, mock_stdio = mock_dependencies
+    mocks = mock_dependencies
+    mock_server = mocks["server"]
+    mock_stdio = mocks["stdio"]
     
     # Mock stdio context manager
     mock_read = AsyncMock()
@@ -77,9 +91,10 @@ async def test_run_success(server, mock_dependencies):
     
     await server.run()
     
+    # Verify flush_buffer called
+    mocks["shell"].flush_buffer.assert_called_once()
+    
     mock_server.run.assert_called()
-    # Cleanup should be called in finally block
-    # We can verify via the tool cleanup
-    _, mock_tool, _ = mock_dependencies
-    mock_tool.cleanup.assert_called()
-
+    
+    # Cleanup verification
+    mocks["shell"].cleanup.assert_called()

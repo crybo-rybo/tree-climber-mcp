@@ -52,6 +52,31 @@ class ShellManager:
       return output[match.end():]
     return output
 
+  async def get_pwd(self) -> str:
+    """
+    Method that returns the current working directory of the xonsh shell
+
+    Returns:
+      str: Current working directory
+    """
+    self._xonsh_proc.sendline("print($PWD)")
+    try:
+        self._xonsh_proc.expect_exact(Constants.SHELL_PROMPT, timeout=Constants.COMMAND_TIMEOUT)
+        output = self._xonsh_proc.before
+        # The output will contain the command "print($PWD)" followed by the path
+        # We need to extract the path. 
+        # Since we are sending "print($PWD)", the output buffer will look like:
+        # print($PWD)\r\n/path/to/dir\r\n
+        
+        lines = output.splitlines()
+        # Filter out the command itself and empty lines
+        for line in lines:
+            line = line.strip()
+            if line and "print($PWD)" not in line:
+                return line
+        return ""
+    except Exception:
+        return ""
   
   async def cleanup(self):
     """

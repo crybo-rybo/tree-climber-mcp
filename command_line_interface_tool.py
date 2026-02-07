@@ -13,7 +13,7 @@ import re
 
 class CommandLineInterfaceTool():
 
-  def __init__(self):
+  def __init__(self, shell_manager: ShellManager):
     self._tool_obj = Tool(
       name="command_line_interface_tool",
       description="Runs a provided bash command in an xonsh shell instance.",
@@ -35,7 +35,7 @@ class CommandLineInterfaceTool():
         "required": ["bash_command"]
       }
     )
-    self._shell_manager = None
+    self._shell_manager = shell_manager
 
   def get_tool(self) -> Tool:
     """
@@ -73,37 +73,13 @@ class CommandLineInterfaceTool():
         text=f"Error: {cmd} is a banned command."
       )]
 
-    # Retrieve ShellManager instance
-    shell_interface = await self._get_shell_manager()
-
     # Run the provided command - returned string is the output of the command
-    output = await shell_interface.run_command(cmd, timeout)
+    output = await self._shell_manager.run_command(cmd, timeout)
 
     return [TextContent(
       type="text",
       text=output
     )]
-  
-  async def cleanup(self):
-    """
-    Method that cleans up all of the CommandLineInterfaceTool attributes
-    """
-    self._name = ""
-    self._tool_obj = 0
-    if not self._shell_manager is None:
-      await self._shell_manager.cleanup()
-
-  async def _get_shell_manager(self) -> ShellManager:
-    """
-    Get or create a ShellManager instance
-    Return:
-      ShellManager object used to interface with the command line
-    """
-    if self._shell_manager is None:
-      self._shell_manager = ShellManager()
-      await self._shell_manager.flush_buffer()
-
-    return self._shell_manager
   
   async def _is_command_permitted(self, command: str) -> bool:
     """
