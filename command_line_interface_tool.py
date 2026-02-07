@@ -67,7 +67,7 @@ class CommandLineInterfaceTool():
       )]
     
     # Verify that the command is permitted
-    if self._is_command_permitted(cmd) == False:
+    if await self._is_command_permitted(cmd) == False:
       return [TextContent(
         type="text",
         text=f"Error: {cmd} is a banned command."

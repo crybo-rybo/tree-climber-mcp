@@ -9,3 +9,9 @@ dependencies = [
     "pexpect>=4.9.0",
     "xonsh>=0.19.9",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+]
