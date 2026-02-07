@@ -20,7 +20,7 @@ Tree Climber MCP is a Model Context Protocol (MCP) server that empowers AI model
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/crybo-rybo/tree-climber-mcp.git
     cd tree-climber-mcp
     ```
 
