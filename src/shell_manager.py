@@ -2,9 +2,8 @@
 Manages instances of the bash shells, as well as executing user commands
 '''
 import server_constants as Constants
-import pexpect
 import asyncio
-import re
+import pexpect
 
 class ShellManager:
   """
@@ -47,9 +46,9 @@ class ShellManager:
       return "Unknown exception caused shell instance to close..."
     
     output = self._xonsh_proc.before
-    match = re.search(command, output)
-    if match:
-      return output[match.end():]
+    lines = output.splitlines(keepends=True)
+    if lines and lines[0].strip() == command.strip():
+      return "".join(lines[1:])
     return output
 
   async def get_pwd(self) -> str:

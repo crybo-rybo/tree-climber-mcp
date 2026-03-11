@@ -22,7 +22,7 @@ from mcp.types import (
 
 class CommandLineServer:
   """
-  This class manages creating the MCP Server for the Command Line Interface tool.
+  This class manages creating the MCP Server and registering the available tools.
   """
   
   def __init__(self, logger: Logger):
@@ -87,7 +87,7 @@ class CommandLineServer:
         # Configure the server options
         init_options = InitializationOptions(
           server_name="cli-server",
-          server_version="0.0.1",
+          server_version="0.1.0",
           capabilities=self._server.get_capabilities(
             notification_options=self._server.notification_options,
             experimental_capabilities=None

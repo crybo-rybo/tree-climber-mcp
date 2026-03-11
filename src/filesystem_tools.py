@@ -1,5 +1,4 @@
 import os
-import asyncio
 from mcp.types import Tool, TextContent
 from shell_manager import ShellManager
 
@@ -7,19 +6,36 @@ class BaseFilesystemTool:
     def __init__(self, shell_manager: ShellManager):
         self._shell_manager = shell_manager
 
-    async def _resolve_path(self, path: str) -> str:
-        """
-        Resolves the given path against the shell's current working directory.
-        """
-        if os.path.isabs(path):
-            return path
-        
+    async def _get_working_directory(self) -> str:
         cwd = await self._shell_manager.get_pwd()
         if not cwd:
-            # Fallback to python's cwd if shell fails (unlikely)
-            return os.path.abspath(path)
-            
-        return os.path.join(cwd, path)
+            return os.getcwd()
+        return cwd
+
+    async def _resolve_path(self, path: str) -> str:
+        """
+        Resolves the given path against the shell's current working directory and
+        rejects paths outside that working tree.
+        """
+        cwd = os.path.realpath(await self._get_working_directory())
+        candidate_path = path if os.path.isabs(path) else os.path.join(cwd, path)
+        target_path = os.path.realpath(candidate_path)
+
+        try:
+            if os.path.commonpath([cwd, target_path]) != cwd:
+                raise PermissionError(path)
+        except ValueError as exc:
+            raise PermissionError(path) from exc
+
+        return target_path
+
+    def _access_error(self, path: str) -> list[TextContent]:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Access to '{path}' is outside the current working directory."
+            )
+        ]
 
 class ListDirectoryTool(BaseFilesystemTool):
     def get_tool(self) -> Tool:
@@ -41,7 +57,10 @@ class ListDirectoryTool(BaseFilesystemTool):
         path = args.get("path", ".")
         try:
             target_path = await self._resolve_path(path)
-            
+        except PermissionError:
+            return self._access_error(path)
+
+        try:
             if not os.path.exists(target_path):
                 return [TextContent(type="text", text=f"Error: Directory '{path}' does not exist.")]
             if not os.path.isdir(target_path):
@@ -84,14 +103,14 @@ class ReadFileTool(BaseFilesystemTool):
 
         try:
             target_path = await self._resolve_path(path)
-            
+        except PermissionError:
+            return self._access_error(path)
+
+        try:
             if not os.path.exists(target_path):
                  return [TextContent(type="text", text=f"Error: File '{path}' does not exist.")]
             if not os.path.isfile(target_path):
                  return [TextContent(type="text", text=f"Error: '{path}' is not a file.")]
-
-            # TODO: Add safety check against reading sensitive system files if needed, 
-            # though the user permission model applies.
 
             with open(target_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -132,7 +151,10 @@ class WriteFileTool(BaseFilesystemTool):
 
         try:
             target_path = await self._resolve_path(path)
-            
+        except PermissionError:
+            return self._access_error(path)
+
+        try:
             # Ensure parent directory exists
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
 

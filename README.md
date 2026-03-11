@@ -17,21 +17,22 @@
 
 ## About
 
-Tree Climber MCP is a Model Context Protocol (MCP) server that empowers AI models to safely interact with a local `xonsh` shell environment. It provides a controlled interface for executing bash commands, enabling LLMs to navigate directories, read files, and perform system operations within defined safety boundaries.
+Tree Climber MCP is a Model Context Protocol (MCP) server that lets AI models interact with a local `xonsh` shell and a small set of filesystem helpers. Shell commands are filtered through a blocklist, and filesystem operations are limited to the shell's current working directory tree.
 
 ## Features
 
 - **MCP Compliant:** Implements the Model Context Protocol to seamlessly integrate with MCP clients (like Claude Desktop or other AI agents).
 - **Safe Shell Execution:** Uses `xonsh` (a Python-powered shell) for command execution.
-- **Security First:** Includes a robust list of banned commands (e.g., `rm -rf /`, `sudo`, `ssh-keygen`) to prevent accidental or malicious system damage.
-- **Asynchronous Architecture:** Built with `asyncio` for non-blocking performance.
+- **Filesystem Helpers:** Exposes `read_file`, `write_file`, and `list_directory` alongside the shell tool.
+- **Security First:** Blocks dangerous shell commands (for example `rm -rf /`, `sudo bash`, and `curl ... | bash`) and restricts filesystem access to the active working directory.
+- **Async Server Interface:** Uses `asyncio` for MCP request handling and lifecycle management.
 - **Extensive Testing:** Includes a comprehensive unit test suite ensuring reliability and safety.
 
 ## Prerequisites
 
 - **Python 3.12+**
-- **xonsh**: Must be installed on your system (`pip install xonsh`).
 - **uv**: Recommended for dependency management.
+- `uv sync` installs the Python dependencies, including `xonsh`, into the project environment.
 
 ## Installation & Setup
 
@@ -80,12 +81,17 @@ To use this with an MCP client (like Claude Desktop), configure your client to r
 
 ## Security
 
-Tree Climber MCP is designed to be safe. It enforces a blocklist of dangerous commands in `server_constants.py`. blocked categories include:
+Tree Climber MCP applies two safety layers:
+
+- Shell commands are checked against the `BANNED_COMMANDS` regex list in `src/server_constants.py`.
+- Filesystem tools only operate inside the shell's current working directory tree.
+
+Blocked shell categories include:
 
 - **System Destruction:** `rm -rf /`, formatting disks.
-- **Privilege Escalation:** `sudo`, `su`.
-- **Remote Access:** `ssh`, `curl | bash`.
-- **Resource Exhaustion:** Fork bombs.
+- **Privilege Escalation:** `sudo bash`, system shutdown commands.
+- **Remote Code Execution:** `curl | bash`, `wget | sh`.
+- **Resource Exhaustion / Scanning:** Fork bombs, `masscan`, `nmap`.
 
 **Note:** While significant safeguards are in place, always proceed with caution when granting an AI agent access to your terminal.
 
@@ -101,7 +107,10 @@ uv run pytest
 
 ### Project Structure
 
-- `command_line_server.py`: Main MCP server entry point.
-- `command_line_interface_tool.py`: Defines the "tool" exposed to the LLM.
-- `shell_manager.py`: Handles low-level interaction with the `xonsh` subprocess.
-- `server_constants.py`: Configuration and banned command definitions.
+- `run_server.py`: local runner that bootstraps `src/` and starts the MCP server.
+- `src/command_line_server.py`: registers the shell and filesystem tools with the MCP server.
+- `src/command_line_interface_tool.py`: validates and runs shell commands.
+- `src/filesystem_tools.py`: implements `list_directory`, `read_file`, and `write_file`.
+- `src/shell_manager.py`: manages the persistent `xonsh` subprocess.
+- `src/server_constants.py`: shell prompt, timeout, and blocked-command definitions.
+- `tests/`: pytest coverage for server, shell manager, constants, and filesystem tools.

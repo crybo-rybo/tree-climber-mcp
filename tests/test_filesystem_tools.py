@@ -1,5 +1,4 @@
 import pytest
-import os
 from unittest.mock import AsyncMock, MagicMock, patch, mock_open
 from filesystem_tools import ReadFileTool, WriteFileTool, ListDirectoryTool
 from shell_manager import ShellManager
@@ -57,6 +56,16 @@ async def test_list_directory_not_found(list_tool):
         result = await list_tool.call_tool({"path": "bad_dir"})
         assert "Error: Directory 'bad_dir' does not exist" in result[0].text
 
+@pytest.mark.asyncio
+async def test_list_directory_rejects_parent_escape(list_tool):
+    result = await list_tool.call_tool({"path": "../secret"})
+    assert "outside the current working directory" in result[0].text
+
+@pytest.mark.asyncio
+async def test_list_directory_rejects_absolute_path_outside_cwd(list_tool):
+    result = await list_tool.call_tool({"path": "/tmp"})
+    assert "outside the current working directory" in result[0].text
+
 # --- ReadFileTool Tests ---
 
 @pytest.mark.asyncio
@@ -78,6 +87,24 @@ async def test_read_file_missing_arg(read_tool):
     result = await read_tool.call_tool({})
     assert "Error: 'path' argument is required" in result[0].text
 
+@pytest.mark.asyncio
+async def test_read_file_allows_absolute_path_within_cwd(read_tool):
+    with (patch("os.path.exists", return_value=True),
+          patch("os.path.isfile", return_value=True),
+          patch("builtins.open", mock_open(read_data="content"))):
+        result = await read_tool.call_tool({"path": "/mock/cwd/test.txt"})
+        assert result[0].text == "content"
+
+@pytest.mark.asyncio
+async def test_read_file_rejects_parent_escape(read_tool):
+    result = await read_tool.call_tool({"path": "../secret.txt"})
+    assert "outside the current working directory" in result[0].text
+
+@pytest.mark.asyncio
+async def test_read_file_rejects_absolute_path_outside_cwd(read_tool):
+    result = await read_tool.call_tool({"path": "/etc/hosts"})
+    assert "outside the current working directory" in result[0].text
+
 # --- WriteFileTool Tests ---
 
 @pytest.mark.asyncio
@@ -97,3 +124,13 @@ async def test_write_file_success(write_tool, mock_shell_manager):
 async def test_write_file_missing_args(write_tool):
     result = await write_tool.call_tool({"path": "foo"})
     assert "Error: 'content' argument is required" in result[0].text
+
+@pytest.mark.asyncio
+async def test_write_file_rejects_parent_escape(write_tool):
+    result = await write_tool.call_tool({"path": "../secret.txt", "content": "hello"})
+    assert "outside the current working directory" in result[0].text
+
+@pytest.mark.asyncio
+async def test_write_file_rejects_absolute_path_outside_cwd(write_tool):
+    result = await write_tool.call_tool({"path": "/tmp/new.txt", "content": "hello"})
+    assert "outside the current working directory" in result[0].text

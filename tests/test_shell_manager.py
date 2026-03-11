@@ -51,17 +51,9 @@ async def test_run_command_success(shell_manager):
     manager, mock_proc = shell_manager
     
     cmd = "echo hello"
-    expected_output = "hello\\n"
+    expected_output = "hello\r\n"
     
-    # Mock the 'before' attribute to simulate output capture
-    # typically run_command searches for cmd in output. 
-    # Logic: 
-    # output = self._xonsh_proc.before
-    # match = re.search(command, output)
-    # if match: return output[match.end():]
-    
-    # We need to simulate the echo back of the command + the output
-    full_output = f"{cmd}\\n{expected_output}"
+    full_output = f"{cmd}\r\n{expected_output}"
     type(mock_proc).before = PropertyMock(return_value=full_output)
     
     result = await manager.run_command(cmd)
@@ -69,10 +61,19 @@ async def test_run_command_success(shell_manager):
     mock_proc.sendline.assert_called_with(cmd)
     mock_proc.expect_exact.assert_called_with(Constants.SHELL_PROMPT, timeout=Constants.COMMAND_TIMEOUT)
     
-    # The current implementation strips the command from the output using regex
-    # So we expect just the output part. 
-    # If full_output is "echo hello\nhello\n", regex matches "echo hello", remaining is "\nhello\n"
-    assert result == "\\n" + expected_output
+    assert result == expected_output
+
+@pytest.mark.asyncio
+async def test_run_command_success_with_regex_characters(shell_manager):
+    manager, mock_proc = shell_manager
+
+    cmd = "echo [a-z]+"
+    full_output = f"{cmd}\r\n[a-z]+\r\n"
+    type(mock_proc).before = PropertyMock(return_value=full_output)
+
+    result = await manager.run_command(cmd)
+
+    assert result == "[a-z]+\r\n"
 
 @pytest.mark.asyncio
 async def test_run_command_timeout(shell_manager):
@@ -118,4 +119,3 @@ async def test_get_pwd_error(shell_manager):
     
     pwd = await manager.get_pwd()
     assert pwd == ""
-
