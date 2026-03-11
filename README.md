@@ -1,4 +1,21 @@
-# Tree Climber MCP
+<p align="center">
+  <img src="docs/images/tree_climber_logo.png" alt="Tree Climber MCP logo" width="220">
+</p>
+
+<h1 align="center">Tree Climber MCP</h1>
+
+<p align="center">
+  <b>Safely connect AI models to a local shell environment.</b><br/>
+  <sub>xonsh-powered &bull; Secure command execution &bull; MCP compliant</sub>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12%2B-blue" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/tests-pytest-success" alt="Tests" />
+  <img src="https://img.shields.io/badge/build-uv-purple" alt="uv build" />
+</p>
+
+## About
 
 Tree Climber MCP is a Model Context Protocol (MCP) server that empowers AI models to safely interact with a local `xonsh` shell environment. It provides a controlled interface for executing bash commands, enabling LLMs to navigate directories, read files, and perform system operations within defined safety boundaries.
 
