@@ -1,9 +1,9 @@
 import pytest
-import asyncio
 from unittest.mock import MagicMock, patch
-from shell_manager import ShellManager
-import server_constants as Constants
+from tree_climber_mcp.config import COMMAND_TIMEOUT, SHELL_PROMPT
+from tree_climber_mcp.shell import ShellManager
 import pexpect
+from unittest.mock import PropertyMock
 
 @pytest.fixture
 def mock_pexpect_spawn():
@@ -37,14 +37,12 @@ async def test_flush_buffer(shell_manager):
     await manager.flush_buffer()
     
     # Verify prompt was set
-    expected_set_prompt = f'$PROMPT = "{Constants.SHELL_PROMPT}"'
+    expected_set_prompt = f'$PROMPT = "{SHELL_PROMPT}"'
     mock_proc.sendline.assert_called_with(expected_set_prompt)
     
     # Verify we waited for prompt
     assert mock_proc.expect_exact.call_count >= 1
-    mock_proc.expect_exact.assert_called_with(Constants.SHELL_PROMPT)
-
-from unittest.mock import PropertyMock
+    mock_proc.expect_exact.assert_called_with(SHELL_PROMPT)
 
 @pytest.mark.asyncio
 async def test_run_command_success(shell_manager):
@@ -59,7 +57,7 @@ async def test_run_command_success(shell_manager):
     result = await manager.run_command(cmd)
     
     mock_proc.sendline.assert_called_with(cmd)
-    mock_proc.expect_exact.assert_called_with(Constants.SHELL_PROMPT, timeout=Constants.COMMAND_TIMEOUT)
+    mock_proc.expect_exact.assert_called_with(SHELL_PROMPT, timeout=COMMAND_TIMEOUT)
     
     assert result == expected_output
 
@@ -106,7 +104,7 @@ async def test_get_pwd(shell_manager):
     pwd = await manager.get_pwd()
     
     mock_proc.sendline.assert_called_with("print($PWD)")
-    mock_proc.expect_exact.assert_called_with(Constants.SHELL_PROMPT, timeout=Constants.COMMAND_TIMEOUT)
+    mock_proc.expect_exact.assert_called_with(SHELL_PROMPT, timeout=COMMAND_TIMEOUT)
     
     assert pwd == "/users/test/dir"
 

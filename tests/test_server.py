@@ -1,17 +1,17 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from command_line_server import CommandLineServer
+from tree_climber_mcp.server import TreeClimberServer
 from mcp.types import Tool, TextContent
 
 @pytest.fixture
 def mock_dependencies():
-    with (patch("command_line_server.Server") as mock_server_cls, 
-          patch("command_line_server.CommandLineInterfaceTool") as mock_cli_tool_cls, 
-          patch("command_line_server.ReadFileTool") as mock_read_tool_cls,
-          patch("command_line_server.WriteFileTool") as mock_write_tool_cls,
-          patch("command_line_server.ListDirectoryTool") as mock_list_tool_cls,
-          patch("command_line_server.ShellManager") as mock_shell_cls,
-          patch("command_line_server.stdio_server") as mock_stdio):
+    with (patch("tree_climber_mcp.server.Server") as mock_server_cls,
+          patch("tree_climber_mcp.server.CommandTool") as mock_cli_tool_cls,
+          patch("tree_climber_mcp.server.ReadFileTool") as mock_read_tool_cls,
+          patch("tree_climber_mcp.server.WriteFileTool") as mock_write_tool_cls,
+          patch("tree_climber_mcp.server.ListDirectoryTool") as mock_list_tool_cls,
+          patch("tree_climber_mcp.server.ShellManager") as mock_shell_cls,
+          patch("tree_climber_mcp.server.stdio_server") as mock_stdio):
          
         mock_server_instance = MagicMock()
         mock_server_cls.return_value = mock_server_instance
@@ -52,7 +52,7 @@ def mock_dependencies():
 @pytest.fixture
 def server(mock_dependencies):
     logger = MagicMock()
-    return CommandLineServer(logger)
+    return TreeClimberServer(logger)
 
 def test_init(server, mock_dependencies):
     mocks = mock_dependencies

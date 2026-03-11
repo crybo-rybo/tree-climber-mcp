@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, mock_open
-from filesystem_tools import ReadFileTool, WriteFileTool, ListDirectoryTool
-from shell_manager import ShellManager
+from tree_climber_mcp.shell import ShellManager
+from tree_climber_mcp.tools.filesystem import ListDirectoryTool, ReadFileTool, WriteFileTool
 from mcp.types import TextContent
 
 @pytest.fixture

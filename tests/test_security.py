@@ -1,6 +1,6 @@
 import pytest
 import re
-from server_constants import BANNED_COMMANDS
+from tree_climber_mcp.security import BANNED_COMMAND_PATTERNS
 
 @pytest.mark.parametrize("command", [
     "rm -rf /",
@@ -28,7 +28,7 @@ def test_banned_commands_matched(command):
     """Test that dangerous commands are caught by the banned patterns."""
     normalized_cmd = ' '.join(command.strip().split()).lower()
     matched = False
-    for pattern in BANNED_COMMANDS:
+    for pattern in BANNED_COMMAND_PATTERNS:
         if re.search(pattern, normalized_cmd, re.IGNORECASE):
             matched = True
             break
@@ -48,7 +48,7 @@ def test_safe_commands_allowed(command):
     """Test that safe commands are NOT matched by banned patterns."""
     normalized_cmd = ' '.join(command.strip().split()).lower()
     matched = False
-    for pattern in BANNED_COMMANDS:
+    for pattern in BANNED_COMMAND_PATTERNS:
         if re.search(pattern, normalized_cmd, re.IGNORECASE):
             matched = True
             break

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from command_line_interface_tool import CommandLineInterfaceTool
-from shell_manager import ShellManager
+from tree_climber_mcp.shell import ShellManager
+from tree_climber_mcp.tools.command import CommandTool
 from mcp.types import TextContent
 
 @pytest.fixture
@@ -11,7 +11,7 @@ def mock_shell_manager():
 
 @pytest.fixture
 def cli_tool(mock_shell_manager):
-    return CommandLineInterfaceTool(mock_shell_manager)
+    return CommandTool(mock_shell_manager)
 
 def test_get_tool(cli_tool):
     tool = cli_tool.get_tool()

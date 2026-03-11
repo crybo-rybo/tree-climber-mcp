@@ -55,12 +55,12 @@ Tree Climber MCP is a Model Context Protocol (MCP) server that lets AI models in
 The server typically runs as a subprocess communicating via `stdio`. To start it manually (e.g., for debugging):
 
 ```bash
-uv run python run_server.py
+uv run tree-climber-mcp
 ```
 
 ### Integrating with MCP Clients
 
-To use this with an MCP client (like Claude Desktop), configure your client to run the server script.
+To use this with an MCP client (like Claude Desktop), configure your client to run the server command from the repository directory.
 
 **Example `claude_desktop_config.json`:**
 
@@ -71,8 +71,9 @@ To use this with an MCP client (like Claude Desktop), configure your client to r
       "command": "/path/to/uv",
       "args": [
         "run",
-        "python",
-        "/absolute/path/to/tree-climber-mcp/run_server.py"
+        "--directory",
+        "/absolute/path/to/tree-climber-mcp",
+        "tree-climber-mcp"
       ]
     }
   }
@@ -83,7 +84,7 @@ To use this with an MCP client (like Claude Desktop), configure your client to r
 
 Tree Climber MCP applies two safety layers:
 
-- Shell commands are checked against the `BANNED_COMMANDS` regex list in `src/server_constants.py`.
+- Shell commands are checked against the regex list in `src/tree_climber_mcp/security.py`.
 - Filesystem tools only operate inside the shell's current working directory tree.
 
 Blocked shell categories include:
@@ -107,10 +108,10 @@ uv run pytest
 
 ### Project Structure
 
-- `run_server.py`: local runner that bootstraps `src/` and starts the MCP server.
-- `src/command_line_server.py`: registers the shell and filesystem tools with the MCP server.
-- `src/command_line_interface_tool.py`: validates and runs shell commands.
-- `src/filesystem_tools.py`: implements `list_directory`, `read_file`, and `write_file`.
-- `src/shell_manager.py`: manages the persistent `xonsh` subprocess.
-- `src/server_constants.py`: shell prompt, timeout, and blocked-command definitions.
-- `tests/`: pytest coverage for server, shell manager, constants, and filesystem tools.
+- `src/tree_climber_mcp/__main__.py`: CLI entrypoint used by `uv run tree-climber-mcp`.
+- `src/tree_climber_mcp/server.py`: registers the shell and filesystem tools with the MCP server.
+- `src/tree_climber_mcp/tools/command.py`: validates and runs shell commands.
+- `src/tree_climber_mcp/tools/filesystem.py`: implements `list_directory`, `read_file`, and `write_file`.
+- `src/tree_climber_mcp/shell.py`: manages the persistent `xonsh` subprocess.
+- `src/tree_climber_mcp/config.py` and `src/tree_climber_mcp/security.py`: runtime config and blocked-command definitions.
+- `tests/`: pytest coverage mirroring the package layout.

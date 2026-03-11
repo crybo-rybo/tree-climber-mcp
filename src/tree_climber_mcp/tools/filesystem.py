@@ -1,6 +1,7 @@
 import os
 from mcp.types import Tool, TextContent
-from shell_manager import ShellManager
+
+from ..shell import ShellManager
 
 class BaseFilesystemTool:
     def __init__(self, shell_manager: ShellManager):

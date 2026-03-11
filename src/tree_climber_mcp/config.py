@@ -1,0 +1,5 @@
+SERVER_NAME = "tree-climber"
+SERVER_VERSION = "0.1.0"
+
+SHELL_PROMPT = "##P##"
+COMMAND_TIMEOUT = 10
