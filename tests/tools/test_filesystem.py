@@ -22,6 +22,14 @@ def read_tool(mock_shell_manager):
 def write_tool(mock_shell_manager):
     return WriteFileTool(mock_shell_manager)
 
+@pytest.fixture
+def unrestricted_read_tool(mock_shell_manager):
+    return ReadFileTool(mock_shell_manager, allow_all_paths=True)
+
+@pytest.fixture
+def rooted_read_tool(mock_shell_manager):
+    return ReadFileTool(mock_shell_manager, filesystem_root="/trusted/root")
+
 # --- ListDirectoryTool Tests ---
 
 @pytest.mark.asyncio
@@ -104,6 +112,27 @@ async def test_read_file_rejects_parent_escape(read_tool):
 async def test_read_file_rejects_absolute_path_outside_cwd(read_tool):
     result = await read_tool.call_tool({"path": "/etc/hosts"})
     assert "outside the current working directory" in result[0].text
+
+@pytest.mark.asyncio
+async def test_read_file_allows_absolute_path_outside_cwd_when_all_paths_enabled(unrestricted_read_tool):
+    with (patch("os.path.exists", return_value=True),
+          patch("os.path.isfile", return_value=True),
+          patch("builtins.open", mock_open(read_data="content"))):
+        result = await unrestricted_read_tool.call_tool({"path": "/etc/hosts"})
+        assert result[0].text == "content"
+
+@pytest.mark.asyncio
+async def test_read_file_allows_absolute_path_within_configured_root(rooted_read_tool):
+    with (patch("os.path.exists", return_value=True),
+          patch("os.path.isfile", return_value=True),
+          patch("builtins.open", mock_open(read_data="content"))):
+        result = await rooted_read_tool.call_tool({"path": "/trusted/root/file.txt"})
+        assert result[0].text == "content"
+
+@pytest.mark.asyncio
+async def test_read_file_rejects_path_outside_configured_root(rooted_read_tool):
+    result = await rooted_read_tool.call_tool({"path": "/etc/hosts"})
+    assert "outside the allowed filesystem root" in result[0].text
 
 # --- WriteFileTool Tests ---
 

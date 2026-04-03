@@ -66,6 +66,33 @@ def test_init(server, mock_dependencies):
     assert "read_tool" in server._tools
     assert "write_tool" in server._tools
     assert "list_tool" in server._tools
+    mocks["read"].assert_called_once_with(mocks["shell"], allow_all_paths=False, filesystem_root=None)
+    mocks["write"].assert_called_once_with(mocks["shell"], allow_all_paths=False, filesystem_root=None)
+    mocks["list"].assert_called_once_with(mocks["shell"], allow_all_paths=False, filesystem_root=None)
+
+def test_init_with_custom_filesystem_policy(mock_dependencies):
+    logger = MagicMock()
+    server = TreeClimberServer(
+        logger,
+        filesystem_root="/trusted/root",
+    )
+
+    assert server._shell_manager == mock_dependencies["shell"]
+    mock_dependencies["read"].assert_called_once_with(
+        mock_dependencies["shell"],
+        allow_all_paths=False,
+        filesystem_root="/trusted/root",
+    )
+    mock_dependencies["write"].assert_called_once_with(
+        mock_dependencies["shell"],
+        allow_all_paths=False,
+        filesystem_root="/trusted/root",
+    )
+    mock_dependencies["list"].assert_called_once_with(
+        mock_dependencies["shell"],
+        allow_all_paths=False,
+        filesystem_root="/trusted/root",
+    )
 
 @pytest.mark.asyncio
 async def test_cleanup(server, mock_dependencies):

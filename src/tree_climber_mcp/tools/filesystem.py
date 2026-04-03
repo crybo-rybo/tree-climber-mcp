@@ -4,8 +4,15 @@ from mcp.types import Tool, TextContent
 from ..shell import ShellManager
 
 class BaseFilesystemTool:
-    def __init__(self, shell_manager: ShellManager):
+    def __init__(
+        self,
+        shell_manager: ShellManager,
+        allow_all_paths: bool = False,
+        filesystem_root: str | None = None,
+    ):
         self._shell_manager = shell_manager
+        self._allow_all_paths = allow_all_paths
+        self._filesystem_root = filesystem_root
 
     async def _get_working_directory(self) -> str:
         cwd = await self._shell_manager.get_pwd()
@@ -13,17 +20,26 @@ class BaseFilesystemTool:
             return os.getcwd()
         return cwd
 
+    async def _get_trusted_root(self) -> str:
+        if self._filesystem_root:
+            return os.path.realpath(self._filesystem_root)
+        return os.path.realpath(await self._get_working_directory())
+
     async def _resolve_path(self, path: str) -> str:
         """
         Resolves the given path against the shell's current working directory and
         rejects paths outside that working tree.
         """
-        cwd = os.path.realpath(await self._get_working_directory())
-        candidate_path = path if os.path.isabs(path) else os.path.join(cwd, path)
+        working_directory = os.path.realpath(await self._get_working_directory())
+        candidate_path = path if os.path.isabs(path) else os.path.join(working_directory, path)
         target_path = os.path.realpath(candidate_path)
 
+        if self._allow_all_paths:
+            return target_path
+
+        trusted_root = await self._get_trusted_root()
         try:
-            if os.path.commonpath([cwd, target_path]) != cwd:
+            if os.path.commonpath([trusted_root, target_path]) != trusted_root:
                 raise PermissionError(path)
         except ValueError as exc:
             raise PermissionError(path) from exc
@@ -31,10 +47,11 @@ class BaseFilesystemTool:
         return target_path
 
     def _access_error(self, path: str) -> list[TextContent]:
+        scope = "allowed filesystem root" if self._filesystem_root else "current working directory"
         return [
             TextContent(
                 type="text",
-                text=f"Error: Access to '{path}' is outside the current working directory."
+                text=f"Error: Access to '{path}' is outside the {scope}."
             )
         ]
 

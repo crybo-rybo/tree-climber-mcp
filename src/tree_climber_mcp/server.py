@@ -12,16 +12,43 @@ from .tools.filesystem import ListDirectoryTool, ReadFileTool, WriteFileTool
 class TreeClimberServer:
     """Create and run the MCP server with the registered tool set."""
 
-    def __init__(self, logger: Logger):
+    def __init__(
+        self,
+        logger: Logger,
+        allow_all_paths: bool = False,
+        filesystem_root: str | None = None,
+    ):
+        if allow_all_paths and filesystem_root:
+            raise ValueError(
+                "--allow-all-paths and --filesystem-root cannot be used together."
+            )
         self._server = Server(SERVER_NAME)
         self._logger = logger
         self._shell_manager = ShellManager()
         self._tools = {}
 
         self._register_tool(CommandTool(self._shell_manager))
-        self._register_tool(ReadFileTool(self._shell_manager))
-        self._register_tool(WriteFileTool(self._shell_manager))
-        self._register_tool(ListDirectoryTool(self._shell_manager))
+        self._register_tool(
+            ReadFileTool(
+                self._shell_manager,
+                allow_all_paths=allow_all_paths,
+                filesystem_root=filesystem_root,
+            )
+        )
+        self._register_tool(
+            WriteFileTool(
+                self._shell_manager,
+                allow_all_paths=allow_all_paths,
+                filesystem_root=filesystem_root,
+            )
+        )
+        self._register_tool(
+            ListDirectoryTool(
+                self._shell_manager,
+                allow_all_paths=allow_all_paths,
+                filesystem_root=filesystem_root,
+            )
+        )
         self._register_handlers()
 
     def _register_tool(self, tool_instance) -> None:
